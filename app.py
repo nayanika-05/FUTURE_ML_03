@@ -1,6 +1,7 @@
+import pdfplumber
 import streamlit as st
 import pandas as pd
-
+import io
 # ---------------------------
 # PAGE CONFIG
 # ---------------------------
@@ -53,14 +54,50 @@ st.sidebar.title("⚙️ Controls")
 
 job_description = st.sidebar.text_area(
     "Paste Job Description",
-    height=200
+    height=200,
+    placeholder="Enter skills and requirements..."
 )
+if job_description:
+
+    st.success(
+        "✅ Job Description Loaded"
+    )
+
+    st.write(
+        "Keywords detected from recruiter requirements."
+    )
+    st.set_page_config(...)
+    st.markdown("""
+<style>
+
+.main {
+    background-color: #f5f7fa;
+}
+
+h1 {
+    color: #1E3A8A;
+    text-align:center;
+}
+
+div[data-testid="metric-container"] {
+    border-radius:10px;
+    padding:15px;
+    background-color:#ffffff;
+    border:1px solid #e5e7eb;
+}
+
+</style>
+""", unsafe_allow_html=True)
+    
 
 candidate_id = st.sidebar.selectbox(
     "Select Candidate",
     df.index
 )
-
+uploaded_file = st.sidebar.file_uploader(
+    "📄 Upload Resume",
+    type=["pdf"]
+)
 candidate = df.loc[candidate_id]
 
 # ---------------------------
@@ -111,7 +148,62 @@ st.info(
 st.progress(
     int(candidate['score_percent'])
 )
+if uploaded_file is not None:
 
+    resume_text = ""
+
+    with pdfplumber.open(uploaded_file) as pdf:
+        for page in pdf.pages:
+            text = page.extract_text()
+            if text:
+                resume_text += text
+
+    st.subheader("📄 Uploaded Resume Preview")
+
+    st.text_area(
+        "Resume Content",
+        resume_text[:2000],
+        height=300
+    )
+    report = f"""
+AI Resume Screening Report
+
+Rank: {candidate['Rank']}
+Match Score: {candidate['score_percent']}%
+Status: {candidate['status']}
+
+Recommendation:
+{recommendation}
+
+Skills Found:
+{candidate['skills']}
+
+Missing Skills:
+{candidate['missing_skills']}
+"""
+    st.download_button(
+    label="📥 Download Report",
+    data=report,
+    file_name="candidate_report.txt",
+    mime="text/plain"
+)
+    if candidate['score_percent'] >= 80:
+
+    st.success(
+        "💪 Strong Candidate"
+    )
+
+elif candidate['score_percent'] >= 60:
+
+    st.warning(
+        "⚠️ Moderate Candidate"
+    )
+
+else:
+
+    st.error(
+        "❌ Weak Candidate"
+    )
 # ---------------------------
 # HIRING RECOMMENDATION
 # ---------------------------
@@ -197,3 +289,20 @@ chart_df = df.head(10)
 st.bar_chart(
     chart_df.set_index("Rank")["score_percent"]
 )
+st.subheader("📋 Recruiter Summary")
+
+summary = f"""
+Candidate Rank: {candidate['Rank']}
+
+Match Score: {candidate['score_percent']}%
+
+Recommendation: {recommendation}
+
+Key Strength:
+Strong alignment with required skills.
+
+Suggested Action:
+Proceed with interview screening.
+"""
+
+st.info(summary)
