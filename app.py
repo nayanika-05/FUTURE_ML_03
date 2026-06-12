@@ -66,28 +66,7 @@ if job_description:
     st.write(
         "Keywords detected from recruiter requirements."
     )
-    st.set_page_config(...)
-    st.markdown("""
-<style>
-
-.main {
-    background-color: #f5f7fa;
-}
-
-h1 {
-    color: #1E3A8A;
-    text-align:center;
-}
-
-div[data-testid="metric-container"] {
-    border-radius:10px;
-    padding:15px;
-    background-color:#ffffff;
-    border:1px solid #e5e7eb;
-}
-
-</style>
-""", unsafe_allow_html=True)
+    
     
 
 candidate_id = st.sidebar.selectbox(
@@ -100,6 +79,30 @@ uploaded_file = st.sidebar.file_uploader(
 )
 candidate = df.loc[candidate_id]
 
+if candidate['score_percent'] >= 80:
+    recommendation = "✅ Shortlist for Interview"
+
+elif candidate['score_percent'] >= 60:
+    recommendation = "⚠️ Consider Candidate"
+
+else:
+    recommendation = "❌ Not Recommended"
+report = f"""
+AI Resume Screening Report
+
+Rank: {candidate['Rank']}
+Match Score: {candidate['score_percent']}%
+Status: {candidate['status']}
+
+Recommendation:
+{recommendation}
+
+Skills Found:
+{candidate['skills']}
+
+Missing Skills:
+{candidate['missing_skills']}
+"""
 # ---------------------------
 # HEADER
 # ---------------------------
@@ -158,13 +161,16 @@ if uploaded_file is not None:
             if text:
                 resume_text += text
 
-    st.subheader("📄 Uploaded Resume Preview")
+    st.success("✅ Resume Uploaded Successfully")
 
-    st.text_area(
-        "Resume Content",
-        resume_text[:2000],
-        height=300
+    st.metric(
+        "Words Extracted",
+        len(resume_text.split())
     )
+
+    with st.expander("📄 View Extracted Resume Text"):
+        st.write(resume_text[:3000])
+
     report = f"""
 AI Resume Screening Report
 
@@ -181,13 +187,13 @@ Skills Found:
 Missing Skills:
 {candidate['missing_skills']}
 """
-    st.download_button(
+st.download_button(
     label="📥 Download Report",
     data=report,
     file_name="candidate_report.txt",
     mime="text/plain"
 )
-    if candidate['score_percent'] >= 80:
+if candidate['score_percent'] >= 80:
 
     st.success(
         "💪 Strong Candidate"
